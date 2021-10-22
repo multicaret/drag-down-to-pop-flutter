@@ -4,7 +4,6 @@
 /// found in the LICENSE file.
 /// This file is copied from flutter sdk with some modifications.
 /// See [CupertinoPageRoute]
-
 import 'package:flutter/animation.dart' show Curves;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -16,8 +15,7 @@ import 'package:flutter/widgets.dart';
 import '../drag_down_to_pop.dart';
 
 /// A builder that builds a background widget given a child.
-typedef TransitionBackgroundBuilder = Widget Function(
-    BuildContext context, Widget child);
+typedef TransitionBackgroundBuilder = Widget Function(BuildContext context, Widget child);
 
 class DragDownToPopPageTransitionsBuilder extends PageTransitionsBuilder {
   const DragDownToPopPageTransitionsBuilder({
@@ -34,16 +32,26 @@ class DragDownToPopPageTransitionsBuilder extends PageTransitionsBuilder {
     BuildContext context,
     Animation<double> animation,
     Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    return SlideAndFadeTransition(
-      primaryRouteAnimation: animation,
-      secondaryRouteAnimation: secondaryAnimation,
-      linearTransition: PopGestureHelper.isPopGestureInProgress(route),
-      child: PopGestureHelper.buildPopGestureDetector(route, child),
-      backgroundColor: backgroundColor,
-      backgroundBuilder: backgroundBuilder,
-    );
+    Widget child, {
+    bool fadeTransitionOnly = false,
+  }) {
+    return fadeTransitionOnly
+        ? FadeInTransition(
+            primaryRouteAnimation: animation,
+            secondaryRouteAnimation: secondaryAnimation,
+            linearTransition: PopGestureHelper.isPopGestureInProgress(route),
+            child: PopGestureHelper.buildPopGestureDetector(route, child),
+            backgroundColor: backgroundColor,
+            backgroundBuilder: backgroundBuilder,
+          )
+        : SlideAndFadeTransition(
+            primaryRouteAnimation: animation,
+            secondaryRouteAnimation: secondaryAnimation,
+            linearTransition: PopGestureHelper.isPopGestureInProgress(route),
+            child: PopGestureHelper.buildPopGestureDetector(route, child),
+            backgroundColor: backgroundColor,
+            backgroundBuilder: backgroundBuilder,
+          );
   }
 }
 
@@ -101,6 +109,51 @@ class SlideAndFadeTransition extends StatelessWidget {
           position: _primaryAnimation2,
           child: child,
         ),
+      ),
+    );
+  }
+}
+
+class FadeInTransition extends StatelessWidget {
+  FadeInTransition({
+    Key? key,
+    required Animation<double> primaryRouteAnimation,
+    required Animation<double> secondaryRouteAnimation,
+    required bool linearTransition,
+    required this.child,
+    Color? backgroundColor,
+    TransitionBackgroundBuilder? backgroundBuilder,
+  })  : _primaryAnimation1 = (linearTransition
+                ? primaryRouteAnimation
+                : CurvedAnimation(
+                    parent: primaryRouteAnimation,
+                    curve: Curves.linearToEaseOut,
+                  ))
+            .drive(Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        )),
+        _backgroundBuilder = (backgroundBuilder ??
+            (context, child) => DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: backgroundColor ?? Colors.white,
+                  ),
+                  child: child,
+                )),
+        super(key: key);
+
+  final Animation<double> _primaryAnimation1;
+  final TransitionBackgroundBuilder _backgroundBuilder;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    assert(debugCheckHasDirectionality(context));
+    return FadeTransition(
+      opacity: _primaryAnimation1,
+      child: _backgroundBuilder(
+        context,
+        child,
       ),
     );
   }
